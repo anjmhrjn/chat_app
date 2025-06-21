@@ -5,6 +5,7 @@ module.exports = (io) => {
     console.log('User connected:', socket.id);
 
     socket.on('joinRoom', async ({ roomId, username }) => {
+        console.log(roomId, username)
         console.log("Room joined")
     //   await chatService.joinRoom(socket, roomId, username);
     });
