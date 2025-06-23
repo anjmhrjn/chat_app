@@ -34,7 +34,8 @@ module.exports = (io) => {
       socket.emit("needUsername");
     }
 
-    socket.on("setUsername", (username) => {
+    socket.on("setUsername", ({username}) => {
+      console.log(username)
       const guestId = generateGuestId();
 
       // Issue new token
