@@ -29,13 +29,11 @@ module.exports = (io) => {
 
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
-
     if (!socket.user) {
       socket.emit("needUsername");
     }
 
-    socket.on("setUsername", ({username}) => {
-      console.log(username)
+    socket.on("setUsername", ({ username }) => {
       const guestId = generateGuestId();
 
       // Issue new token
@@ -45,6 +43,13 @@ module.exports = (io) => {
 
       socket.user = { guestId, username };
       socket.emit("tokenIssued", { token, userInfo: { guestId, username } });
+    });
+
+    socket.on("refreshTokenRequest", () => {
+      const token = jwt.sign(socket.user, SECRET, {
+        expiresIn: "1h",
+      });
+      socket.emit("tokenIssued", { token, userInfo: socket.user });
     });
 
     socket.on("joinRoom", async ({ roomId }) => {
