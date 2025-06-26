@@ -14,10 +14,10 @@ module.exports = (io) => {
           guestId: payload?.guestId,
           username: payload?.username,
         };
-        return next();
       } catch (err) {
-        return next(new Error("Invalid token"));
+        socket.emit("needUsername")
       }
+      return next();
     }
     socket.user = null;
     next();

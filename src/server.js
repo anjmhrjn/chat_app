@@ -5,7 +5,7 @@ const { Server } = require("socket.io");
 const mongodb = require("./config/db");
 const moment = require("moment-timezone");
 const createError = require("http-errors");
-const {SOCKET_CORS} = require("./constants/socket_cors")
+const { SOCKET_CORS } = require("./constants/socket_cors");
 
 moment.tz.setDefault("America/New_York");
 
@@ -25,7 +25,7 @@ app.use(
 );
 
 // API routes
-// require('./requires/allRoutes')(app)
+require('./routes/allRoutes')(app)
 
 // not found
 app.use(async (req, res, next) => {
@@ -46,13 +46,18 @@ app.use((err, req, res, next) => {
 app.set("port", port);
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: (origin, callback) => {
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
       if (!origin || SOCKET_CORS.includes(origin)) {
         callback(null, origin); // return that origin
       } else {
         callback(new Error("Not allowed by CORS"));
       }
-    }, credentials: true } });
+    },
+    credentials: true,
+  },
+});
 
 mongodb()
   .then(() => {
