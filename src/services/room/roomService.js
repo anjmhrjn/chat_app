@@ -12,14 +12,14 @@ exports.createRoom = async function ({ username, guestId }) {
 };
 
 exports.joinRoom = async function ({ roomId, guestId }) {
-  const findRoom = await Room.findOne({ roomCode: roomId });
+  const findRoom = await Room.findOne({ roomCode: roomId, isActive: true });
   if (!findRoom) {
     throw new Error("Room not found!");
   }
   if (findRoom && findRoom?.members?.length == 10) {
     throw new Error("Maximum members in a room exceeded!")
   }
-  const room = await Room.findOneAndUpdate(
+  await Room.findOneAndUpdate(
     {
       roomCode: roomId,
       members: { $ne: guestId },

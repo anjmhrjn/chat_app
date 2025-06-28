@@ -1,4 +1,8 @@
-const { createRoom } = require("../../services/room/roomService");
+const {
+  createRoom,
+  joinRoom,
+  leaveRoom,
+} = require("../../services/room/roomService");
 
 exports.createRoomController = async function (req, res, next) {
   try {
@@ -13,7 +17,33 @@ exports.createRoomController = async function (req, res, next) {
       message: "Room created successfully",
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     next(error);
+  }
+};
+
+exports.joinRoomController = async function (req, res, next) {
+  try {
+    await joinRoom({ roomId: req.body.roomId, guestId: req.user.guestId });
+    return res.json({
+      success: true,
+      message: "Room joined successfully!",
+    });
+  } catch (err) {
+    console.log(err);
+    next(err);
+  }
+};
+
+exports.leaveRoomController = async function (req, res, next) {
+  try {
+    await leaveRoom({ roomId: req.body.roomId, guestId: req.user.guestId });
+    return res.json({
+      success: true,
+      message: "Room left successfully!"
+    })
+  } catch (err) {
+    console.log(err);
+    next(err);
   }
 };

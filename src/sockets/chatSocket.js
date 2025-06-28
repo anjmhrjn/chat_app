@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const SECRET = process.env.JWT_SECRET;
 const { generateGuestId } = require("../utils/generateGuestId");
 const { saveMessage } = require("../services/message/messageService");
+const Room = require("../models/room.model");
 // const chatService = require('../services/chatService');
 
 module.exports = (io) => {
@@ -24,10 +25,6 @@ module.exports = (io) => {
     socket.user = null;
     next();
   });
-
-  // io.use((socket, next) => {
-  //   // intercept every emit from the frontend
-  // });
 
   io.on("connection", (socket) => {
     if (!socket.user) {
@@ -68,7 +65,19 @@ module.exports = (io) => {
 
     socket.on("sendMessage", async ({ roomId, message }) => {
       const { username, guestId } = socket.user;
-      if (!username || !guestId || !roomId) return;
+      if (!username || !guestId || !roomId) {
+        socket.emit("error", "Error sending message");
+        return;
+      }
+      const room = await Room.findOne({
+        roomCode: roomId,
+        members: guestId,
+        isActive: true,
+      });
+      if (!room) {
+        socket.emit("error", "You are not a member of this room.");
+        return;
+      }
       await saveMessage({ roomId, username, guestId, message });
       io.to(roomId).emit("newMessage", {
         message,
