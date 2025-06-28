@@ -1,33 +1,29 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-let roomSchema = new Schema(
+let messageSchema = new Schema(
   {
     roomCode: {
       type: String,
       required: true,
       unique: true,
     },
-    createdBy: {
+    senderUsername: {
       type: String,
       required: true,
     },
-    guestId: {
+    senderGuestId: {
       type: String,
       required: true,
     },
-    members: [{ type: String }],
-    isActive: {
-      type: Boolean,
-      required: true,
-      default: true,
-    },
+    message: { type: String, required: true },
+    sentAt: {type: Date, default: Date.now}
   },
   {
     timestamps: true,
   }
 );
 
-const Room = mongoose.model("Room", roomSchema);
-Room.createIndexes();
-module.exports = Room;
+const Message = mongoose.model("Message", messageSchema);
+Message.createIndexes();
+module.exports = Message;

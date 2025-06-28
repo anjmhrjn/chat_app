@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const SECRET = process.env.JWT_SECRET;
 const { generateGuestId } = require("../utils/generateGuestId");
+const { saveMessage } = require("../services/message/messageService");
 // const chatService = require('../services/chatService');
 
 module.exports = (io) => {
@@ -13,9 +14,10 @@ module.exports = (io) => {
         socket.user = {
           guestId: payload?.guestId,
           username: payload?.username,
+          rooms: new Set(),
         };
       } catch (err) {
-        socket.emit("needUsername")
+        socket.emit("needUsername");
       }
       return next();
     }
@@ -28,7 +30,6 @@ module.exports = (io) => {
   // });
 
   io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
     if (!socket.user) {
       socket.emit("needUsername");
     }
@@ -41,38 +42,56 @@ module.exports = (io) => {
         expiresIn: "1h",
       });
 
-      socket.user = { guestId, username };
+      socket.user = { guestId, username, roms: new Set() };
       socket.emit("tokenIssued", { token, userInfo: { guestId, username } });
     });
 
     socket.on("refreshTokenRequest", () => {
-      const token = jwt.sign(socket.user, SECRET, {
+      let userInfo = {
+        username: socket.user.username,
+        guestId: socket.user.guestId,
+      };
+      const token = jwt.sign(userInfo, SECRET, {
         expiresIn: "1h",
       });
-      socket.emit("tokenIssued", { token, userInfo: socket.user });
+      socket.emit("tokenIssued", { token, userInfo: userInfo });
     });
 
-    socket.on("joinRoom", async ({ roomId }) => {
+    socket.on("joinRoom", ({ roomId }) => {
       socket.join(roomId);
-      console.log(roomId);
-      console.log(socket.user.username);
-      console.log("Room joined");
-      //   await chatService.joinRoom(socket, roomId, username);
+      socket.user.rooms.add(roomId);
+      io.to(roomId).emit("userJoined", {
+        username: socket.user.username,
+        guestId: socket.user.guestId,
+      });
     });
 
     socket.on("sendMessage", async ({ roomId, message }) => {
-      console.log("Message sent");
-      //   await chatService.handleMessage(io, socket, roomId, message);
+      const { username, guestId } = socket.user;
+      if (!username || !guestId || !roomId) return;
+      await saveMessage({ roomId, username, guestId, message });
+      io.to(roomId).emit("newMessage", {
+        message,
+        senderUsername: socket.user.username,
+      });
     });
 
     socket.on("leaveRoom", ({ roomId }) => {
       socket.leave(roomId);
-      console.log(`${socket.user.username} left room ${roomId}`);
+      socket.user.rooms.delete(roomId);
+      io.to(roomId).emit("userLeft", {
+        username: socket.user.username,
+        guestId: socket.user.guestId,
+      });
     });
 
     socket.on("disconnect", () => {
-      //   chatService.handleDisconnect(io, socket);
-      console.log("Disconnected");
+      for (const roomId of socket.user.rooms) {
+        io.to(roomId).emit("userLeft", {
+          guestId: socket.user.guestId,
+          username: socket.user.username,
+        });
+      }
     });
   });
 };
