@@ -87,6 +87,7 @@ module.exports = (io) => {
       io.to(roomCode).emit("newMessage", {
         message,
         senderUsername: socket.user.username,
+        senderGuestId: socket.user.guestId
       });
     });
 

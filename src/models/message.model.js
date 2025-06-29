@@ -6,7 +6,6 @@ let messageSchema = new Schema(
     roomCode: {
       type: String,
       required: true,
-      unique: true,
     },
     senderUsername: {
       type: String,

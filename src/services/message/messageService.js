@@ -7,20 +7,29 @@ exports.saveMessage = async function ({
   guestId,
   message,
 }) {
-  await Message.create({
-    roomCode: roomCode,
-    senderUsername: username,
-    senderGuestId: guestId,
-    message: encryptMessage(message),
-  });
+  try {
+    await Message.create({
+      roomCode: roomCode,
+      senderUsername: username,
+      senderGuestId: guestId,
+      message: encryptMessage(message),
+    });
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 exports.getAllMessages = async function ({ roomCode }) {
-  const messages = await Message.find({ roomId });
+  try {
+    const messages = await Message.find({ roomCode });
 
-  const decryptedMessages = messages.map((msg) => ({
-    ...msg._doc,
-    message: decryptMessage(msg.message),
-  }));
-  return decryptedMessages;
+    const decryptedMessages = messages.map((msg) => ({
+      ...msg._doc,
+      type: "chat",
+      message: decryptMessage(msg.message),
+    }));
+    return decryptedMessages;
+  } catch (err) {
+    console.log(err);
+  }
 };
