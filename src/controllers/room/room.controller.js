@@ -24,7 +24,11 @@ exports.createRoomController = async function (req, res, next) {
 
 exports.joinRoomController = async function (req, res, next) {
   try {
-    await joinRoom({ roomId: req.body.roomId, guestId: req.user.guestId });
+    await joinRoom({
+      roomCode: req.body.roomCode,
+      username: req.user.username,
+      guestId: req.user.guestId,
+    });
     return res.json({
       success: true,
       message: "Room joined successfully!",
@@ -37,11 +41,11 @@ exports.joinRoomController = async function (req, res, next) {
 
 exports.leaveRoomController = async function (req, res, next) {
   try {
-    await leaveRoom({ roomId: req.body.roomId, guestId: req.user.guestId });
+    await leaveRoom({ roomCode: req.body.roomCode, guestId: req.user.guestId });
     return res.json({
       success: true,
-      message: "Room left successfully!"
-    })
+      message: "Room left successfully!",
+    });
   } catch (err) {
     console.log(err);
     next(err);

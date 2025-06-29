@@ -16,7 +16,12 @@ let roomSchema = new Schema(
       type: String,
       required: true,
     },
-    members: [{ type: String }],
+    members: [
+      {
+        username: { type: String, required: true },
+        guestId: { type: String, required: true },
+      },
+    ],
     isActive: {
       type: Boolean,
       required: true,
@@ -28,6 +33,7 @@ let roomSchema = new Schema(
   }
 );
 
+roomSchema.index({ "members.guestId": 1 });
 const Room = mongoose.model("Room", roomSchema);
 Room.createIndexes();
 module.exports = Room;

@@ -11,8 +11,8 @@ exports.createRoom = async function ({ username, guestId }) {
   return room;
 };
 
-exports.joinRoom = async function ({ roomId, guestId }) {
-  const findRoom = await Room.findOne({ roomCode: roomId, isActive: true });
+exports.joinRoom = async function ({ roomCode, username, guestId }) {
+  const findRoom = await Room.findOne({ roomCode: roomCode, isActive: true });
   if (!findRoom) {
     throw new Error("Room not found!");
   }
@@ -21,24 +21,23 @@ exports.joinRoom = async function ({ roomId, guestId }) {
   }
   await Room.findOneAndUpdate(
     {
-      roomCode: roomId,
-      members: { $ne: guestId },
+      roomCode: roomCode,
+      "members.guestId": { $ne: guestId },
     },
-    { $push: { members: guestId } },
+    { $push: { members: {username: username, guestId: guestId} } },
     { new: true }
   );
 };
 
-exports.leaveRoom = async function ({ roomId, guestId }) {
+exports.leaveRoom = async function ({ roomCode, guestId }) {
   const room = await Room.findOneAndUpdate(
     {
-      roomCode: roomId,
-      members: guestId,
+      roomCode: roomCode,
     },
-    { $pull: { members: guestId } },
+    { $pull: { members: {guestId: guestId} } },
     { new: true }
   );
-  if (room.members.length === 0 && room.isActive) {
-    await Room.updateOne({ roomCode: roomId }, { $set: { isActive: false } });
+  if (room?.members?.length === 0 && room?.isActive) {
+    await Room.updateOne({ roomCode: roomCode }, { $set: { isActive: false } });
   }
 };

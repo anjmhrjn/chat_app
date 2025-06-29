@@ -6,7 +6,7 @@ exports.getAllMessagesController = async function (req, res, next) {
     const room = await Room.findOne({
       roomCode: req.params.roomCode,
       isActive: true,
-      members: req.user.guestId,
+      members: { $elemMatch: { guestId: req.user.guestId } },
     });
     if (!room) {
       return res.json({
