@@ -35,79 +35,103 @@ module.exports = (io) => {
     });
 
     socket.on("setUsername", ({ username }) => {
-      const guestId = generateGuestId();
+      try {
+        const guestId = generateGuestId();
 
-      // Issue new token
-      const token = jwt.sign({ guestId, username }, SECRET, {
-        expiresIn: "1h",
-      });
+        // Issue new token
+        const token = jwt.sign({ guestId, username }, SECRET, {
+          expiresIn: "1h",
+        });
 
-      socket.user = { guestId, username, rooms: new Set() };
-      socket.emit("tokenIssued", { token, userInfo: { guestId, username } });
+        socket.user = { guestId, username, rooms: new Set() };
+        socket.emit("tokenIssued", { token, userInfo: { guestId, username } });
+      } catch (err) {
+        socket.emit("error", err);
+      }
     });
 
     socket.on("refreshTokenRequest", () => {
-      let userInfo = {
-        username: socket.user.username,
-        guestId: socket.user.guestId,
-      };
-      const token = jwt.sign(userInfo, SECRET, {
-        expiresIn: "1h",
-      });
-      socket.emit("tokenIssued", { token, userInfo: userInfo });
+      try {
+        let userInfo = {
+          username: socket.user.username,
+          guestId: socket.user.guestId,
+        };
+        const token = jwt.sign(userInfo, SECRET, {
+          expiresIn: "1h",
+        });
+        socket.emit("tokenIssued", { token, userInfo: userInfo });
+      } catch (err) {
+        socket.emit("error", err);
+      }
     });
 
     socket.on("joinRoom", ({ roomCode }) => {
-      socket.join(roomCode);
-      socket.user.rooms.add(roomCode);
-      io.to(roomCode).emit("userJoined", {
-        roomCode: roomCode,
-        username: socket.user.username,
-        guestId: socket.user.guestId,
-      });
+      try {
+        socket.join(roomCode);
+        socket.user.rooms.add(roomCode);
+        io.to(roomCode).emit("userJoined", {
+          roomCode: roomCode,
+          username: socket.user.username,
+          guestId: socket.user.guestId,
+        });
+      } catch (err) {
+        socket.emit("error", err);
+      }
     });
 
     socket.on("sendMessage", async ({ roomCode, message }) => {
-      const { username, guestId } = socket.user;
-      if (!username || !guestId || !roomCode) {
-        socket.emit("error", "Error sending message");
-        return;
+      try {
+        const { username, guestId } = socket.user;
+        if (!username || !guestId || !roomCode) {
+          socket.emit("error", "Error sending message");
+          return;
+        }
+        const room = await Room.findOne({
+          roomCode: roomCode,
+          members: guestId,
+          members: { $elemMatch: { guestId } },
+          isActive: true,
+        });
+        if (!room) {
+          socket.emit("error", "You are not a member of this room.");
+          return;
+        }
+        await saveMessage({ roomCode, username, guestId, message });
+        io.to(roomCode).emit("newMessage", {
+          message,
+          senderUsername: socket.user.username,
+          senderGuestId: socket.user.guestId,
+        });
+      } catch (err) {
+        socket.emit("error", err);
       }
-      const room = await Room.findOne({
-        roomCode: roomCode,
-        members: guestId,
-        members: { $elemMatch: { guestId } },
-        isActive: true,
-      });
-      if (!room) {
-        socket.emit("error", "You are not a member of this room.");
-        return;
-      }
-      await saveMessage({ roomCode, username, guestId, message });
-      io.to(roomCode).emit("newMessage", {
-        message,
-        senderUsername: socket.user.username,
-        senderGuestId: socket.user.guestId
-      });
     });
 
     socket.on("leaveRoom", ({ roomCode }) => {
-      socket.leave(roomCode);
-      socket.user.rooms.delete(roomCode);
-      io.to(roomCode).emit("userLeft", {
-        username: socket.user.username,
-        guestId: socket.user.guestId,
-      });
+      try {
+        socket.leave(roomCode);
+        socket.user.rooms.delete(roomCode);
+        io.to(roomCode).emit("userLeft", {
+          username: socket.user.username,
+          guestId: socket.user.guestId,
+        });
+      } catch (err) {
+        socket.emit("error", err);
+      }
     });
 
     socket.on("disconnect", async () => {
-      let rooms = socket?.user?.rooms || [];
-      for (const roomCode of rooms) {
-        await leaveRoom({ roomCode, guestId: socket.user.guestId });
-        io.to(roomCode).emit("userLeft", {
-          guestId: socket.user.guestId,
-          username: socket.user.username,
-        });
+      try {
+        let rooms = socket?.user?.rooms || [];
+        for (const roomCode of rooms) {
+          await leaveRoom({ roomCode, guestId: socket.user.guestId });
+          io.to(roomCode).emit("userLeft", {
+            guestId: socket.user.guestId,
+            username: socket.user.username,
+          });
+        }
+      } catch (err) {
+        socket.emit("error", err);
       }
     });
   });

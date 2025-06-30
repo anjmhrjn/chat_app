@@ -15,7 +15,7 @@ exports.saveMessage = async function ({
       message: encryptMessage(message),
     });
   } catch (err) {
-    console.log(err);
+    throw new Error(err)
   }
 };
 
@@ -30,6 +30,6 @@ exports.getAllMessages = async function ({ roomCode }) {
     }));
     return decryptedMessages;
   } catch (err) {
-    console.log(err);
+    throw new Error(err)
   }
 };
